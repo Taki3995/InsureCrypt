@@ -1,0 +1,1 @@
+# Pruebas de fallos de seguridad como contraseñas incorrectas, firmas alteradas, etc
