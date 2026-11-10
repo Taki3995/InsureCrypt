@@ -1,3 +1,10 @@
-cryptography
-bcrypt
-ipykernel
+# Dependencias criptográficas principales
+cryptography==42.0.5
+bcrypt==4.1.2
+
+# Entorno de pruebas y notebooks
+ipykernel==6.29.4
+pytest==8.1.1
+
+# Herramienta de calidad de código (linter/formatter)
+ruff==0.3.5
