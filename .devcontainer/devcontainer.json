@@ -13,11 +13,10 @@
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.testing.pytestEnabled": true,
         "python.testing.unittestEnabled": false,
-        "python.testing.pytestArgs": ["tests"],
-        "editor.formatOnSave": true,
-        "[python]": {
-          "editor.defaultFormatter": "astral-sh.ruff"
-        }
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "editor.formatOnSave": true
       },
       "extensions": [
         "ms-python.python",
