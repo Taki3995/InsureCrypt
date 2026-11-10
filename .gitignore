@@ -1,0 +1,12 @@
+# Archivos de Python y caché
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Entorno de VS Code y Dev Containers
+.devcontainer/devcontainer-lock.json
+.vscode/
+
+# Datos del sistema y claves privadas
+keys/*.pem
+data/*.json
