@@ -76,3 +76,13 @@ facial o el iris, entre otros.
 - test_autenticacion_usuario_inexistente: Comprueba que intentar autenticar un DNI no registrado devuelve False.
 
 - test_ataque_sustitucion_paquete_entre_clientes: Simula que un atacante copia el bloque cifrado y firmado de un cliente hacia el registro de otro cliente en policies.json, comprobando que consultar_polizas detecta el fraude y bloquea la visualización.
+
+
+## EJECUTAR PRUEBAS
+ejecutar el siguiente comando en terminal:
+
+```bash
+pytest -v
+```
+
+hace que pytest imprima el nombre individual de cada una de las 17 funciones de prueba junto con su estado (PASSED o FAILED)
