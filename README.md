@@ -40,7 +40,7 @@ facial o el iris, entre otros.
 **Pedidos en el enunciado**
 - test_generacion_y_carga_claves_ecdsa: Comprueba que el sistema genera el par de claves asimétricas ECDSA (SECP256R1), cifra la clave privada en disco (-----BEGIN ENCRYPTED PRIVATE KEY-----) y la recupera correctamente con la contraseña maestra.  
 
-- test_registro_y_autenticacion_exitosa: Verifica que un cliente se registra almacenando sal aleatoria de 16 bytes y hash derivado (nunca la contraseña en claro) y que inicia sesión con éxito.   
+- test_registro_y_autenticacion_exitosa: Verifica que un cliente se registra almacenando salt aleatoria de 16 bytes y hash derivado (nunca la contraseña en claro) y que inicia sesión con éxito.   
 
 - test_cifrado_y_descifrado_autenticado_aes_gcm: Comprueba que una póliza cifrada con AES-256-GCM oculta los datos originales y se descifra recuperando el diccionario exacto.   
 
@@ -55,8 +55,24 @@ facial o el iris, entre otros.
 
 ## Tests Negativos
 **Pedidos en el Enunciado**
-- 
+- test_contrasena_maestra_incorrecta_pem: Intenta desprecintar private_key.pem con una contraseña maestra incorrecta y verifica que lanza ValueError sin exponer claves.
+
+- test_autenticacion_contrasena_incorrecta: Intenta iniciar sesión con una contraseña incorrecta y comprueba que devuelve False.
+
+- test_modificacion_ciphertext_aes_gcm: Altera 1 byte del bloque cifrado (ciphertext) y comprueba que descifrar_poliza lanza ValueError (capturando InvalidTag) rechazando los datos.   
+
+- test_modificacion_tag_autenticacion_aes_gcm: Altera 1 byte dentro de los últimos 16 bytes del paquete (la etiqueta de autenticación GCM) y verifica que el descifrado falla explícitamente con ValueError.   
+
+- test_descifrado_con_clave_o_contrasena_incorrecta: Intenta descifrar una póliza derivando la clave a partir de una contraseña equivocada y verifica que lanza ValueError.   
+
+- test_firma_digital_alterada: Modifica 1 byte de la firma digital ECDSA y verifica que verificar_firma_poliza devuelve False (capturando InvalidSignature).   
+
+- test_datos_poliza_modificados_post_firma: Altera el importe de la póliza después de haber sido firmada y verifica que la firma ECDSA rechaza el documento (False).   
 
 
 **Extras**
-- 
+- test_registro_usuario_duplicado: Comprueba que intentar registrar un DNI ya existente lanza ValueError impidiendo sobrescribir credenciales.
+
+- test_autenticacion_usuario_inexistente: Comprueba que intentar autenticar un DNI no registrado devuelve False.
+
+- test_ataque_sustitucion_paquete_entre_clientes: Simula que un atacante copia el bloque cifrado y firmado de un cliente hacia el registro de otro cliente en policies.json, comprobando que consultar_polizas detecta el fraude y bloquea la visualización.
