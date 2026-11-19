@@ -3,7 +3,7 @@
 - Instalar extension Dev containers en vscode
 - Para Docker Desktop abrir app y cuando el servicio este activo apretar f1 en vscode y poner "Dev Containers: Reopen in Container"
 
-**Checklist
+# Checklist
 **1. registro y autenticacion de usuarios** !!!
 - en archivo auth.py, usa autenticacion basada en contraseñas robustas (algo que sabemos) almacenadas con PBKDF2HMAC-SHA256 (600.000 iteraciones), salt unico de 16 bytes creado con os.urandom y comparacion en tiempo constante hmac.compare_digest.
 - actualmente usando lo minimo pedido (aunque las 600mil iteraciones le dan un plus), podemos mejorarlo:
@@ -33,3 +33,30 @@ facial o el iris, entre otros.
 **otros**
 - todos los salts y nonces usan os.urandom
 - fallos de tag o firma detienen el flujo de ejecucion 
+
+
+# **Tests**
+## Tests Positivos
+**Pedidos en el enunciado**
+- test_generacion_y_carga_claves_ecdsa: Comprueba que el sistema genera el par de claves asimétricas ECDSA (SECP256R1), cifra la clave privada en disco (-----BEGIN ENCRYPTED PRIVATE KEY-----) y la recupera correctamente con la contraseña maestra.  
+
+- test_registro_y_autenticacion_exitosa: Verifica que un cliente se registra almacenando sal aleatoria de 16 bytes y hash derivado (nunca la contraseña en claro) y que inicia sesión con éxito.   
+
+- test_cifrado_y_descifrado_autenticado_aes_gcm: Comprueba que una póliza cifrada con AES-256-GCM oculta los datos originales y se descifra recuperando el diccionario exacto.   
+
+- test_no_reutilizacion_nonces_aes_gcm: Cifra dos veces la misma póliza con la misma clave y verifica que ambos nonces tienen 96 bits (12 bytes) y son distintos entre sí, asegurando que nunca se reutiliza un nonce.   
+
+- test_firma_y_verificacion_digital_ecdsa: Verifica que la aseguradora firma la póliza con ECDSA-SHA256 y que verificar_firma_poliza valida la firma usando la clave pública.   
+
+**Extras**
+- test_serializacion_determinista_en_firma: Verifica que aunque las claves del diccionario de la póliza se construyan en distinto orden en memoria, sort_keys=True mantiene la firma válida sin falsos rechazos.
+
+- test_flujo_completo_end_to_end_cli: Simula la ejecución completa en main.py (contratar_poliza seguido de consultar_polizas), verificando que la integración entre derivación de clave, firma, cifrado, persistencia JSON y verificación funciona de extremo a extremo.
+
+## Tests Negativos
+**Pedidos en el Enunciado**
+- 
+
+
+**Extras**
+- 
