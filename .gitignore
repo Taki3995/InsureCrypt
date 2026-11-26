@@ -9,4 +9,6 @@ __pycache__/
 
 # Datos del sistema y claves privadas
 keys/*.pem
+keys/*.enc
+keys/*.salt
 data/*.json
