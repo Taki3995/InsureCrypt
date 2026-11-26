@@ -1,9 +1,7 @@
-# Dependencias criptográficas principales
+# Dependencia criptográfica (única): AES-GCM, PBKDF2, HMAC, ECDSA
 cryptography==42.0.5
-bcrypt==4.1.2
 
-# Entorno de pruebas y notebooks
-ipykernel==6.29.4
+# Entorno de pruebas
 pytest==8.1.1
 
 # Herramienta de calidad de código (linter/formatter)

@@ -1,53 +1,64 @@
 # Registro y autenticacion de usuarios
 
 import base64
-import json
 import os
 import hmac
+import re
 from pathlib import Path
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
 
-DATA_DIR = Path("data")
+from crypto_utils import PBKDF2_ITERATIONS, derivar_clave_simetrica
+from secure_storage import cargar_json, guardar_json
+
+# rutas desde la raiz del proyecto, asi da igual desde q carpeta se lance la app
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 USERS_FILE = DATA_DIR / "users.json"
 SALT_SIZE = 16
-PBKDF2_ITERATIONS = 600000  # Estándar actual NIST/OWASP para SHA-256
-
-
-def inicializar_almacen_usuarios() -> None:
-    """Crea la carpeta data/ y el archivo users.json si no existen."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if not USERS_FILE.exists():
-        with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump({}, f)
+# politica de contraseñas (owasp asvs v2.1.1 / v2.1.2): min y max de longitud, sin reglas tipo mayus+simbolo
+MIN_PASSWORD_LENGTH = 12
+MAX_PASSWORD_LENGTH = 128
+MENSAJE_FALLO_AUTENTICACION = "Fallo de autenticación: DNI/ID o contraseña incorrectos."
 
 
 def _cargar_usuarios() -> dict:
-    inicializar_almacen_usuarios()
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """ carga users.json comprobando antes su hmac (si lo han tocado salta IntegridadError) """
+    return cargar_json(USERS_FILE, {})
 
 
 def _guardar_usuarios(usuarios: dict) -> None:
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(usuarios, f, indent=4)
+    guardar_json(USERS_FILE, usuarios)
 
 
 def _derivar_hash(password: str, salt: bytes) -> bytes:
-    """Deriva una clave/hash a partir de la contraseña usando PBKDF2HMAC-SHA256."""
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=PBKDF2_ITERATIONS,
-    )
-    return kdf.derive(password.encode("utf-8"))
+    """
+    hash de la contraseña pa guardar/comprobar: pbkdf2-sha256 (600k iteraciones, 32 bytes)
+    uso la misma funcion de crypto_utils pa no tener el pbkdf2 repetido en 2 sitios
+    """
+    return derivar_clave_simetrica(password, salt)
+
+
+def validar_politica_password(dni: str, password: str) -> None:
+    """
+    mira q la contraseña sea robusta antes de registrarla, si no lanza ValueError con el motivo
+    ojo: se usa tal cual, sin quitar espacios, xq los espacios tb son parte del secreto
+    """
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.")
+    if len(password) > MAX_PASSWORD_LENGTH:
+        raise ValueError(f"La contraseña no puede superar los {MAX_PASSWORD_LENGTH} caracteres.")
+    if dni.lower() in password.lower():
+        raise ValueError("La contraseña no puede contener el DNI/ID del cliente.")
 
 
 def registrar_usuario(dni: str, password: str) -> bool:
     """
     Registra un nuevo cliente/usuario. Genera salt de 16 bytes con os.urandom y almacena salt + hash en Base64.
     """
+    if not dni:
+        raise ValueError("El DNI/ID de cliente no puede estar vacío.")
+    if not re.fullmatch(r"[A-Za-z0-9]{1,20}", dni):
+        raise ValueError("El DNI/ID de cliente solo puede contener letras y números (máximo 20 caracteres).")
+    validar_politica_password(dni, password)
+
     usuarios = _cargar_usuarios()
     if dni in usuarios:
         raise ValueError(f"El usuario con DNI/ID '{dni}' ya se encuentra registrado.")
@@ -69,23 +80,26 @@ def registrar_usuario(dni: str, password: str) -> bool:
 
 def autenticar_usuario(dni: str, password: str) -> bool:
     """
-    Autentica un usuario existente recalculando el hash con su salt y comparándolo en tiempo constante (hmac.compare_digest).
+    recalcula el hash con la sal del usuario y lo compara en tiempo cte (hmac.compare_digest)
+    pa no chivar q dnis estan registrados (enumeracion de usuarios) el mensaje de fallo es el mismo
+    si el usuario no existe o si la contraseña esta mal, y en los 2 casos se hace el pbkdf2 asi tarda lo mismo
     """
     usuarios = _cargar_usuarios()
-    if dni not in usuarios:
-        print(f"[LOG SEGURIDAD] Fallo de autenticación: Usuario '{dni}' no existe.")
-        return False
+    datos_user = usuarios.get(dni)
 
-    datos_user = usuarios[dni]
-    salt = base64.b64decode(datos_user["salt"])
-    hash_almacenado = base64.b64decode(datos_user["hash"])
+    if datos_user is None:
+        # el usuario no existe: hago el pbkdf2 igual con una sal de relleno y lo tiro, solo pa q tarde lo mismo
+        salt, hash_almacenado = os.urandom(SALT_SIZE), None
+    else:
+        salt = base64.b64decode(datos_user["salt"])
+        hash_almacenado = base64.b64decode(datos_user["hash"])
 
     hash_calculado = _derivar_hash(password, salt)
 
     # Comparación en tiempo constante para mitigar ataques de tiempo
-    if hmac.compare_digest(hash_almacenado, hash_calculado):
+    if hash_almacenado is not None and hmac.compare_digest(hash_almacenado, hash_calculado):
         print(f"[LOG SEGURIDAD] Autenticación exitosa para el usuario '{dni}'.")
         return True
-    else:
-        print(f"[LOG SEGURIDAD] Fallo de autenticación: Contraseña incorrecta para '{dni}'.")
-        return False
+
+    print(f"[LOG SEGURIDAD] {MENSAJE_FALLO_AUTENTICACION}")
+    return False
